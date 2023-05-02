@@ -1,24 +1,37 @@
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { Platform, Text, View, StyleSheet } from 'react-native';
+import Device from 'expo-device';
+import * as Location from 'expo-location';
 import { Pedometer } from 'expo-sensors';
-import { DeviceMotion } from 'expo-sensors';
-import { useEffect, useState } from 'react';
+
 
 export default function App() {
   const [location, setLocation] = useState(null);
   const [errorMsg, setErrorMsg] = useState(null);
+    const [isPedometerAvailable, setIsPedometerAvailable] = useState('checking');
+  const [pastStepCount, setPastStepCount] = useState(0);
+  const [currentStepCount, setCurrentStepCount] = useState(0);
 
   useEffect(() => {
     (async () => {
-      if (Platform.OS === 'android' && !Device.isDevice) {
-        setErrorMsg(
-          'Oops, this will not work on Snack in an Android Emulator. Try it on your device!'
-        );
-        return;
-      }
+          const requestActivityPermission = async () => {
+  try {
+    const granted = await PermissionsAndroid.request(
+      PermissionsAndroid.PERMISSIONS.ACTIVITY_RECOGNITION,
+    );
+    if (granted === PermissionsAndroid.RESULTS.GRANTED) {
+      Alert.alert("Start walking");
+    } else {
+      Alert.alert("permission denied");
+    }
+  } catch (err) {
+    console.warn(err);
+  }
+};
       let { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
-        setErrorMsg('Permission to access location was denied');
+        setErrorMsg('Permission to access location was denied.');
         return;
       }
 
@@ -31,12 +44,42 @@ export default function App() {
   if (errorMsg) {
     text = errorMsg;
   } else if (location) {
-    text = JSON.stringify(location);
+    text = location.heading
+  console.log(location);
   }
+    const subscribe = async () => {
+    const isAvailable = await Pedometer.isAvailableAsync();
+    setIsPedometerAvailable(String(isAvailable));
+
+    if (isAvailable) {
+      const end = new Date();
+      const start = new Date();
+      start.setDate(end.getDate() - 1);
+
+      const pastStepCountResult = await Pedometer.getStepCountAsync(start, end);
+      if (pastStepCountResult) {
+        setPastStepCount(pastStepCountResult.steps);
+      }
+
+      return Pedometer.watchStepCount(result => {
+        alert("step!")
+        setCurrentStepCount(result);
+      });
+    }
+  };
+
+  useEffect(() => {
+    const subscription = subscribe();
+    return () => subscription && subscription.remove();
+  }, []);
+
 
   return (
     <View style={styles.container}>
-      <Text style={styles.paragraph}>{text}</Text>
+      <Text style={styles.text}>{text}</Text>
+            <Text>Pedometer.isAvailableAsync(): {isPedometerAvailable}</Text>
+      <Text style={styles.text}>Steps taken in the last 24 hours: {pastStepCount}</Text>
+      <Text style={styles.text}>Walk! And watch this go upp: {currentStepCount}</Text>
     </View>
   );
 }
