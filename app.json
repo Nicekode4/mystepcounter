@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "mystepcounter",
-    "slug": "myfirst",
+    "slug": "mystepcounter",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -25,12 +25,6 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    },
-    "extra": {
-      "eas": {
-        "projectId": "fd83d514-1c06-4ca4-bd7e-4db8c196309c"
-      }
-    },
-    "owner": "nicekode4"
+    }
   }
 }
