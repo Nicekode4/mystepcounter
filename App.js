@@ -35,7 +35,7 @@ console.log(DeviceMotion);
   }, []);
   return (
     <View style={styles.container}>
-      <Text style={styles.text}>Dine skridt: {currentStepCount}</Text>
+      <Text style={styles.text}>Dine skridt lel: {currentStepCount}</Text>
       <StatusBar style="auto" />
       
       
