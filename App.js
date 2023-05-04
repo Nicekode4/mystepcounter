@@ -4,6 +4,10 @@ import { Platform, Text, View, StyleSheet } from 'react-native';
 import Device from 'expo-device';
 import * as Location from 'expo-location';
 import { Pedometer } from 'expo-sensors';
+import { Accelerometer } from 'expo-sensors';
+import { activateKeepAwake, deactivateKeepAwake } from 'expo-keep-awake';
+
+
 
 
 export default function App() {
@@ -11,6 +15,7 @@ export default function App() {
   const [errorMsg, setErrorMsg] = useState(null);
     const [isPedometerAvailable, setIsPedometerAvailable] = useState('checking');
   const [pastStepCount, setPastStepCount] = useState(0);
+  const [speed,setSpeed] = useState(5)
   const [currentStepCount, setCurrentStepCount] = useState(0);
 
   useEffect(() => {
@@ -37,49 +42,45 @@ export default function App() {
 
       let location = await Location.getCurrentPositionAsync({});
       setLocation(location);
+      setSpeed(location.coords.speed)
     })();
   }, []);
-
   let text = 'Waiting..';
   if (errorMsg) {
     text = errorMsg;
   } else if (location) {
-    text = location.heading
-  console.log(location);
+    text = location.coords.speed
   }
-    const subscribe = async () => {
-    const isAvailable = await Pedometer.isAvailableAsync();
-    setIsPedometerAvailable(String(isAvailable));
-
-    if (isAvailable) {
-      const end = new Date();
-      const start = new Date();
-      start.setDate(end.getDate() - 1);
-
-      const pastStepCountResult = await Pedometer.getStepCountAsync(start, end);
-      if (pastStepCountResult) {
-        setPastStepCount(pastStepCountResult.steps);
-      }
-
-      return Pedometer.watchStepCount(result => {
-        alert("step!")
-        setCurrentStepCount(result);
-      });
+  let subscription = null;
+  let steps = 0;
+  let lastX = 0;
+  let lastY = 0;
+  let lastZ = 0;
+  
+  Accelerometer.addListener(accelerometerData => {
+    const { x, y, z } = accelerometerData;
+    console.log(accelerometerData);
+    const deltaX = Math.abs(lastX - x);
+    const deltaY = Math.abs(lastY - y);
+    const deltaZ = Math.abs(lastZ - z);
+  
+    if (deltaX > 1 && deltaY > 1 || deltaX > 1 && deltaZ > 1 || deltaY > 1 && deltaZ > 1) {
+      steps += 1;
     }
-  };
-
-  useEffect(() => {
-    const subscription = subscribe();
-    return () => subscription && subscription.remove();
-  }, []);
-
+  
+    lastX = x;
+    lastY = y;
+    lastZ = z;
+  
+    setCurrentStepCount(currentStepCount + steps)
+  });
+  
+  Accelerometer.setUpdateInterval(100);
 
   return (
     <View style={styles.container}>
-      <Text style={styles.text}>{text}</Text>
-            <Text>Pedometer.isAvailableAsync(): {isPedometerAvailable}</Text>
-      <Text style={styles.text}>Steps taken in the last 24 hours: {pastStepCount}</Text>
-      <Text style={styles.text}>Walk! And watch this go upp: {currentStepCount}</Text>
+      <Text style={styles.text}>Du har taget {currentStepCount} skridt</Text>
+      <Text style={styles.text}>Du har gået i gns {speed ? speed.toFixed(1) : 1} km i timen</Text>
     </View>
   );
 }
@@ -94,6 +95,6 @@ const styles = StyleSheet.create({
   },
   text: {
     color: "white",
-    fontSize: "3rem"
+    fontSize: 25
   }
 });
